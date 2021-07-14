@@ -1,0 +1,356 @@
+
+                            REDCODE REFERENCE
+
+Simulator: pMARS
+Version: 0.8.0
+Standard: ICWS'94 draft (extended)
+
+Language elements not currently in the draft are labeled with *, those
+added in this version of pMARS are labeled with +.
+
+________________________________________
+Opcodes:
+
+    DAT     terminate process
+    MOV     move from A to B
+    ADD     add A to B, store result in B
+    SUB     subtract A from B, store result in B
+    MUL     multiply A by B, store result in B
+    DIV     divide B by A, store result in B if A <> 0, else terminate
+    MOD     divide B by A, store remainder in B if A <> 0, else terminate
+    JMP     transfer execution to A
+    JMZ     transfer execution to A if B is zero
+    JMN     transfer execution to A if B is non-zero
+    DJN     decrement B, if B is non-zero, transfer execution to A
+    SPL     split off process to A
+    SLT     skip next instruction if A is less than B
+    CMP     same as SEQ
+    SEQ     (*) Skip next instruction if A is equal to B
+    SNE     (*) Skip next instruction if A is not equal to B
+    NOP     (*) No operation
+    LDP     (+) Load P-space cell A into core address B
+    STP     (+) Store A-number into P-space cell B
+
+________________________________________
+Pseudo opcodes:
+
+    [labels] EQU text            replaces [labels] by text
+            [EQU text]           (*) multi-line EQU: text continues
+
+             ORG start           specifies execution start
+
+             END [start]         end of assembly (optional execution start)
+
+    [count]  FOR expression      (*) repeat enclosed instructions "expression"
+             ROF                 times, counter is incremented starting with 01
+
+             PIN number          (+) P-space identification number, warriors
+                                 with same number share P-space
+
+________________________________________
+Modifiers:
+
+    .A   Instructions read and write A-fields.
+
+    .B   Instructions read and write B-fields.
+
+    .AB  Instructions read the A-field of the A-instruction  and
+         the B-field of the B-instruction and write to B-fields.
+
+    .BA  Instructions read the B-field of the A-instruction  and
+         the A-field of the B-instruction and write to A-fields.
+
+    .F   Instructions read both A- and B-fields of  the  the  A-
+         and  B-instruction and write to both A- and B-fields (A
+         to A and B to B).
+
+    .X   Instructions read both A- and B-fields of  the  the  A-
+         and  B-instruction  and  write  to both A- and B-fields
+         exchanging fields (A to B and B to A).
+
+    .I   Instructions read and write entire instructions.
+
+________________________________________
+Addressing modes:
+
+    #       immediate
+    $       direct
+    @       indirect using B-field
+    <       predecrement indirect using B-field
+    >       postincrement indirect using B-field
+    *       (*) indirect using A-field
+    {       (*) predecrement indirect using A-field
+    }       (*) postincrement indirect using A-field
+
+________________________________________
+Directives:
+
+    ;redcode                code follows, preceding text is ignored
+    ;name                   name of warrior follows
+    ;author                 name of author follows
+    ;assert                 (*) expression that must evaluate to true
+    ;trace [off]            (*) toggle trace bit for following instructions
+    ;break                  (*) set trace bit for next instruction
+    ;debug [static|off]     (*) enable/disable setting [static] trace bits
+
+________________________________________
+Predefined variables (*):
+
+    CORESIZE          value of -s parameter (default: 8000)
+    MAXPROCESSES      value of -p parameter (default: 8000)
+    MAXCYCLES         value of -c parameter (default: 80000)
+    MAXLENGTH         value of -l parameter (default: 100)
+    MINDISTANCE       value of -d parameter (default: 100)
+    ROUNDS            (+) value of -r parameter (default: 1)
+    PSPACESIZE        (+) value of -S parameter (default: 1/16th CORESIZE)
+    CURLINE           current line in generated assembly (starts with 0)
+    VERSION           pMARS version ("60" is v0.6.0)
+    WARRIORS          number of warriors specified on command line
+
+________________________________________
+Expression operators:
+
+    Arithmetic:
+        +   addition or unary plus
+        -   subtraction or unary minus
+        /   division
+        %   modulo (remainder of division)
+
+    Comparison (*):
+        ==  equality
+        !=  inequality
+        <   less than
+        >   greater than
+        <=  less than or equal
+        >=  greater than or equal
+
+    Logical (*):
+        &&  and
+        ||  or
+        !   unary negation
+
+    Assignment (*):
+    =   (to register variables a..z)
+
+    Comparison and logical operators return 1 for true and 0 for false.
+    Parentheses can be used to override this precedence order:
+
+    1) ! - + (unary)
+    2) * / %
+    3) - + (binary)
+    4) == != < > <= >=
+    5) &&
+    6) ||
+    7) =
+
+________________________________________
+Redcode grammar:
+
+statement_list :: statement statement_list | e ;
+statement :: normal_stmt<1> |
+             equ_stmt       |
+             forrof_stmt    |
+             comment_stmt   |
+             substitution_stmt<2> ;
+
+num       :: [0-9] ;
+number    :: num number | num ;
+alpha     :: [a-zA-Z] | "_" ;
+alphanum  :: alpha | num ;
+alphanums :: alphanum alphanums | e ;
+
+label  :: alpha alphanums ;
+label1 :: label label1 | label ;
+labels :: label1 "\n" labels | label1 ;
+stringization :: stringization"&"label | label ;
+
+this_string :: (^\n)* ;
+comment     :: ";" this_string "\n" | e ;
+
+equ_stmt    :: labels equ_strings ;
+equ_string  :: "equ" this_string comment "\n" ;
+equ_strings :: equ_string "\n" equ_strings | equ_string ;
+
+forrof_stmt :: labels index "for" expression<3> comment "\n"
+               statement_list
+               "rof" this_string "\n" ;
+index       :: label
+
+comment_stmt  :: info_comment | debug_comment | ignore ;
+ignore        :: ";" this_string "\n" ;
+info_comment  :: ";redcode" this_string "\n" |
+                 ";" "name" this_string "\n" |
+                 ";" "author" this_string "\n" |
+                 ";" "date" this_string "\n" |
+                 ";" "version" this_string "\n" |
+                 ";" "assert" expression<4> "\n" ;
+debug_comment :: ";" debug "\n" | ";" trace "\n" | ";" break "\n" ;
+debug         :: "debug" | "debug" "off" | "debug" "static" ;
+trace         :: "trace" | "trace" "off" ;
+break         :: "break" ;
+
+Note:
+----
+1. Normal statements are statements in the following form:
+   opcode [address mode] operand [, [address mode] operand] [comment]
+   More details about the grammar are given in the '88 or '94 proposal.
+
+2. Substitution statements are labels that have been declared by EQU.
+   If a label is declared this way: "IMP_instr equ imp mov imp, imp +
+   1", the label name IMP_instr can be thought of as a statement.
+   Therefore, whenf IMP_instr is used after its declaration, it will
+   be replaced by "imp mov imp, imp + 1". It has effect of declaring
+   a label 'imp' and inserting the statement 'mov imp, imp + 1'.
+
+3. Valid expression for "FOR" statement is very close to C expression in
+   which operator '()' has the highest precedence, followed by 'unary +,
+   unary -', '*, / and %', 'binary + and binary -', '<, <=, >, >=',
+   '==, !=', '&&', '||', and the lowest '='.
+   Beside numbers, it can also has labels as its terms. All of its labels
+   have to be declared before "FOR" statement is invoked.
+4. Valid expression for "ASSERT" statement is the same as that for "FOR".
+
+Case sensitivity
+----------------
+
+Opcode and pseudo-opcode names are case insensitive; labels are case
+sensitive.
+
+Label declaration
+-----------------
+Labels are declared in three ways:
+ o Using EQU. When a label name that first appears (has not been declared)
+   is declared with EQU, all subsequent occurences of that label name
+   will be replaced by the strings following the EQU.
+
+   The following equates label THIS with "num + 1". THIS equ num + 1.
+
+   If the string substituting the label contains other labels, those labels
+   are also replaced by their substituting string. Recursive reference of
+   labels are flagged as error.
+
+   More than one statement can be declared as a label name. To achieve this,
+   declare a blank label with EQU following the statement that declares
+   as part of equation of a named EQU label. Thus, the declaration of the
+   following:
+   core_clear equ spl 0
+              equ mov 2, <-1
+              equ jmp -1
+   causes three statements are declared as strings of label core_clear.
+
+ o As an offset relative to the current normal statement. If some labels
+   appear just before any '88 or '94 opcodes, they are automatically
+   declared as constants that are relative to the current statement.
+   For example:
+   first spl first                0000 spl 0
+   imp   mov imp, imp + 1  -----> 0001 mov 0, 1
+
+ o As an index belonging to FOR statement. Unlike other statements, labels
+   declared with FOR consist of two ingredients: the last label serving
+   as FOR index and the remaining labels serving as the same offset pointing
+   at the first of the FOR statement. This allows the implementation of
+   base[index] kind.
+
+   This declaration:
+   base
+   index for 3
+         mov base, base + index - 1
+         rof
+
+   translates into:
+   0000 mov 0, 0
+   0001 mov 0, 1
+   0002 mov 0, 2
+
+Stringization and declaration inside FOR/ROF:
+--------------------------------------------
+
+FOR 5
+imp mov imp, imp + 5
+ROF
+
+Declaration of the above example causes the assembler to complain for
+duplicating declarations. pMARS however offers the stringization feature
+to accomplish the same goal. Its syntax is: label"&"label"&"...
+The first label can be any valid alphanums and it goes untranslated.
+The rest of the labels have to be a FOR index and it is to be substituted
+accordingly. Thus:
+
+N FOR 5
+  imp&N mov imp&N, imp&N + 1
+  ROF
+
+are expanded into:
+imp01 mov imp01, imp01 + 5
+imp02 mov imp02, imp02 + 5
+imp03 mov imp03, imp03 + 5
+imp04 mov imp04, imp04 + 5
+imp05 mov imp05, imp05 + 5
+
+It is then correctly compiled.
+
+The following form is also valid:
+
+prime01 equ 2
+prime02 equ 3
+prime03 equ 5
+prime04 equ 7
+prime05 equ 11
+
+N FOR 5
+  dat prime&N
+  ROF
+
+The conjunction of FOR statements and EQU statements:
+----------------------------------------------------
+
+If labels that are not stringized are declared inside FOR/ROF statements,
+the result is duplicating declaration. Although in the future it might be
+allowed, it is well-advised that such labels are to be declared outside of
+the FOR/ROF block.
+
+If FOR statements are declared as strings of a label name using EQU such as:
+THIS EQU N FOR 3
+     EQU   mov 0, 3
+     EQU   ROF
+
+The expansion of such is feasible providing that both the FOR and ROF are
+present in the same label name.
+
+Therefore, the following will not work:
+THIS EQU N FOR 3
+THAT EQU   ROF
+
+THIS
+ mov 0, 3
+THAT
+
+or
+
+TEST EQU N FOR 3
+ mov 0, 3
+ ROF
+
+PMARS parsing background
+------------------------
+Parsing is done in three steps:
+1. Reading from input
+2. First pass assembly
+3. Second pass assembly
+
+- During reading: info_comment is parsed, comments to be ignored are removed,
+  the remaining are copied into memory. If the first ';redcode' appears,
+  all the current contents are erased from memory. Reading is continued
+  until it encounters the next ';redcode'. Reading always stops when it
+  encounters a line containing a word END or end-of-file.
+- During the first pass, all labels are collected. All expansions and
+  removals are done in this pass. All labels before opcode are substituted
+  if they have been declared or declared otherwise. All labels after opcode
+  are preserved for the second pass. This allows forward declaration
+  mechanism for labels after opcode.
+- During the second pass, no labels are declared and collected. There is
+  no further statement expansions and removals. All labels that have not
+  been substituted are substituted. Syntax checking to meet with '88 or '94
+  requirement is done in this stage.
+
+$Id: redcode.ref,v 1.5 1995/07/30 18:47:11 stst Exp stst $

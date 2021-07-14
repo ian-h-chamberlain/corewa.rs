@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["corewars_core"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/ops/deref/trait.Deref.html\" title=\"trait core::ops::deref::Deref\">Deref</a> for <a class=\"struct\" href=\"corewars_core/load_file/struct.DEFAULT_CONSTANTS.html\" title=\"struct corewars_core::load_file::DEFAULT_CONSTANTS\">DEFAULT_CONSTANTS</a>","synthetic":false,"types":["corewars_core::load_file::DEFAULT_CONSTANTS"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

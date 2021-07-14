@@ -1,0 +1,24 @@
+# Site settings
+title: corewars
+email: info@corewa.rs
+baseurl: ''
+url: https://corewa.rs
+
+# Build settings
+theme: jekyll-theme-hacker
+
+# Avoid duplicate title on markdown pages created by hacker theme
+titles_from_headings:
+  strip_title: true
+
+# Delete the .md files when rendering to HTML
+readme_index:
+  remove_originals: true
+
+include:
+  - crates
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - serve.sh

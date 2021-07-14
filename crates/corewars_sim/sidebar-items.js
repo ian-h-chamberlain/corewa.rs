@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Core","The full memory core at a given point in time"]]});

@@ -1,0 +1,50 @@
+Formal grammar from the ICWS '94 annotated draft 3.3, section 2.3, line 0199
+http://corewar.co.uk/standards/icws94.txt
+
+assembly_file:
+        line+ EOF
+line:
+        comment | instruction
+comment:
+        ; v* newline | newline
+instruction:
+        label_list operation mode expr comment |
+        label_list operation mode expr , mode expr comment
+label_list:
+        label newline* label_list | e
+label:
+        alpha alphanumeral*
+operation:
+        opcode | opcode.modifier
+opcode:
+        DAT | MOV | ADD | SUB | MUL | DIV | MOD |
+        JMP | JMZ | JMN | DJN | CMP | SEQ | SNE |
+        SLT | SPL | NOP | ORG | EQU | END
+modifier:
+        A | B | AB | BA | F | X | I
+mode:
+        # | $ | * | @ | { | < | } | > | e
+expr:
+        term |
+        term + expr | term - expr |
+        term * expr | term / expr |
+        term % expr
+term:
+        label | number | ( expression )
+number:
+        whole_number | signed_integer
+signed_integer:
+        +whole_number | -whole_number
+whole_number:
+        numeral+
+alpha:
+        A-Z | a-z | _
+numeral:
+        0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+alphanumeral:
+        alpha | numeral
+v:
+        ^newline
+newline:
+        LF | CR | LF CR | CR LF
+e:
